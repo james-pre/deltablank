@@ -1,6 +1,5 @@
 {
 	"name": "blanked",
-	"globalName": "blanked",
 	"version": "0.0.0-prototype",
 	"description": "An engine designed for making 3D (and in the future, 2D) experiences.",
 	"main": "dist/index.js",
@@ -28,7 +27,7 @@
 		"url": "https://github.com/james-pre/blanked/issues"
 	},
 	"engines": {
-		"node": ">= 16"
+		"node": ">= 22"
 	},
 	"exports": {
 		".": "./dist/index.js",
@@ -39,38 +38,28 @@
 		"format:check": "prettier --check .",
 		"lint": "tsc -p tsconfig.json --noEmit && eslint src",
 		"test": "tsx --test --experimental-test-coverage",
-		"build": "node scripts/build.js --entry src/index.ts",
+		"build": "tsc -p tsconfig.json",
 		"build:docs": "typedoc",
 		"dev": "npm run build -- --watch",
 		"prepublishOnly": "npm run build"
 	},
-	"lint-staged": {
-		"*": [
-			"prettier --write"
-		]
-	},
 	"devDependencies": {
 		"@eslint/js": "^9.9.0",
-		"@fal-works/esbuild-plugin-global-externals": "^2.1.2",
-		"@stylistic/eslint-plugin": "^2.6.4",
 		"@types/eslint__js": "^8.42.3",
-		"esbuild": "^0.23.1",
 		"eslint": "^9.9.0",
 		"globals": "^15.9.0",
-		"lint-staged": "^15.2.9",
 		"prettier": "^3.3.3",
-		"typedoc": "^0.26.6",
-		"typedoc-plugin-remove-references": "^0.0.6",
+		"typedoc": ">=0.26.6",
 		"typescript": "^5.5.4",
 		"typescript-eslint": "^8.2.0"
 	},
 	"dependencies": {
 		"@babylonjs/core": "^7.22.1",
-		"@cloudflare/workers-types": "^4.20241004.0",
 		"eventemitter3": "^5.0.1",
 		"http-status-codes": "^2.3.0",
-		"logzen": "^0.3.8",
+		"lit": "^3.3.0",
+		"logzen": "^0.7.0",
 		"socket.io": "^4.7.5",
-		"utilium": "^0.7.2"
+		"utilium": "^2.3.4"
 	}
 }

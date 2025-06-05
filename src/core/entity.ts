@@ -1,186 +1,172 @@
-import type { IVector3Like } from '@babylonjs/core/Maths/math.like';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import { EventEmitter } from 'eventemitter3';
-import { assignWithDefaults, pick, randomHex, resolveConstructors } from 'utilium';
-import { component, type Component } from './component';
-import type { Level } from './level';
-import { findPath } from './path';
+import { assignWithDefaults, type UUID } from 'utilium';
+import type { Component } from './component.js';
+import type { Level } from './level.js';
+import { logger } from './utils.js';
 
 export interface EntityJSON {
-	id: string;
+	id: UUID;
+	type: string;
 	name: string;
-	owner?: string;
 	parent?: string;
-	entityType: string;
 	position: [number, number, number];
 	rotation: [number, number, number];
-	velocity: [number, number, number];
 }
 
-const copy = ['id', 'name', 'entityType'] as const satisfies ReadonlyArray<keyof Entity>;
-
-@component
-export class Entity
+export class Entity<Config extends {} = any>
 	extends EventEmitter<{
-		update: [];
 		created: [];
 	}>
-	implements Component<EntityJSON>
+	implements AsyncDisposable
 {
+	protected components = new Set<Component>();
+
 	public get [Symbol.toStringTag](): string {
 		return this.constructor.name;
 	}
 
 	public name: string = '';
 
-	public get entityType(): string {
+	public get type(): string {
 		return this.constructor.name;
-	}
-
-	public get entityTypes(): string[] {
-		return resolveConstructors(this);
-	}
-
-	public isType<T extends Entity>(...types: string[]): this is T {
-		return types.some(type => this.entityTypes.includes(type));
 	}
 
 	public parent?: Entity;
 
-	protected _owner?: Entity;
-	public get owner(): Entity | undefined {
-		return this._owner;
-	}
-
-	public set owner(value: Entity | undefined) {
-		this._owner = value;
-	}
-
-	/**
-	 * Used by path finding to check for collisions
-	 * @internal
-	 */
-	public _pathRadius: number = 1;
-
 	public position: Vector3 = Vector3.Zero();
 	public rotation: Vector3 = Vector3.Zero();
-	public velocity: Vector3 = Vector3.Zero();
 
-	public get absolutePosition(): Vector3 {
-		return this.parent instanceof Entity ? this.parent.absolutePosition.add(this.position) : this.position;
-	}
-
-	public get absoluteRotation(): Vector3 {
-		return this.parent instanceof Entity ? this.parent.absoluteRotation.add(this.rotation) : this.rotation;
-	}
-
-	public get absoluteVelocity(): Vector3 {
-		return this.parent instanceof Entity ? this.parent.absoluteVelocity.add(this.rotation) : this.rotation;
-	}
+	declare ['constructor']: typeof Entity & { config: Config };
 
 	public constructor(
-		public id: string = randomHex(32),
+		public id: UUID = crypto.randomUUID(),
 		public readonly level: Level
 	) {
 		super();
-		this.id ||= randomHex(32);
+		this.id ||= crypto.randomUUID();
 		level.entities.add(this);
 
-		setTimeout(() => this.emit('created'));
+		queueMicrotask(() => this.emit('created'));
 	}
 
-	public update() {
+	public setup?(): void | Promise<void>;
+
+	public onTick?(): void | Promise<void>;
+
+	public async tick(): Promise<void> {
 		if (Math.abs(this.rotation.y) > Math.PI) {
 			this.rotation.y += Math.sign(this.rotation.y) * 2 * Math.PI;
 		}
-
-		this.position.addInPlace(this.velocity);
-		this.emit('update');
+		await this.onTick?.();
 	}
 
-	public remove() {
+	public onDispose?(): void | Promise<void>;
+
+	public async dispose(): Promise<void> {
+		await this.onDispose?.();
+		for (const component of this.components) await component.dispose();
 		this.level.entities.delete(this);
 		this.level.emit('entity_removed', this.toJSON());
 	}
 
-	/**
-	 * @param target The position the entity should move to
-	 * @param isRelative Wheter the target is a change to the current position (i.e. a "delta" vector) or absolute
-	 */
-	public moveTo(target: IVector3Like, isRelative = false) {
-		const { x, y, z } = target;
-		const path = findPath(this.absolutePosition, new Vector3(x, y, z).add(isRelative ? this.absolutePosition : Vector3.Zero()));
-		if (!path.length) {
-			return;
-		}
-		this.level.emit(
-			'entity_path_start',
-			this.id,
-			path.map(({ x, y, z }) => ({ x, y, z }))
-		);
-		this.position = path.at(-1)!.subtract(this.parent?.absolutePosition || Vector3.Zero());
-		const rotation = Vector3.PitchYawRollToMoveBetweenPoints(path.at(-2)!, path.at(-1)!);
-		rotation.x -= Math.PI / 2;
-		this.rotation = rotation;
+	public async [Symbol.asyncDispose](): Promise<void> {
+		await this.dispose();
 	}
 
 	public toJSON(): EntityJSON {
-		return {
-			...pick(this, copy),
-			owner: this.owner?.id,
-			parent: this.parent?.id,
-			position: this.position.asArray(),
-			rotation: this.rotation.asArray(),
-			velocity: this.velocity.asArray(),
-		};
+		return Object.assign(
+			{
+				id: this.id,
+				type: this.type,
+				name: this.name,
+				parent: this.parent?.id,
+				position: this.position.asArray(),
+				rotation: this.rotation.asArray(),
+			},
+			...this.components.values().map(c => c.toJSON())
+		);
 	}
 
-	public fromJSON(data: Partial<EntityJSON>): void {
-		assignWithDefaults(this as Entity, {
-			...pick(data, copy),
+	public load(data: Partial<EntityJSON>): void {
+		assignWithDefaults(this, {
+			id: data.id,
+			type: data.type,
+			name: data.name,
 			position: data.position && Vector3.FromArray(data.position),
 			rotation: data.rotation && Vector3.FromArray(data.rotation),
-			velocity: data.velocity && Vector3.FromArray(data.velocity),
 			parent: data.parent ? this.level.getEntityByID(data.parent) : undefined,
-			owner: data.owner ? this.level.getEntityByID(data.owner) : undefined,
-		});
-	}
-
-	public static FromJSON(data: Partial<EntityJSON>, level: Level): Entity {
-		const entity = new this(data.id, level);
-		entity.fromJSON(data);
-		return entity;
+		} as any);
+		for (const component of this.components) component.load(data);
 	}
 }
 
-export function filterEntities(entities: Iterable<Entity>, selector: string): Set<Entity> {
+/**
+ * An entity with some components applied
+ */
+export type ApplyComponents<T extends Component[], Result extends Entity = Entity> = T extends []
+	? Result
+	: T extends [Component<infer TMix, any>, ...infer Rest extends Component[]]
+		? ApplyComponents<Rest, Result & TMix>
+		: never;
+
+export interface EntityConstructor<T extends Component[]> {
+	new (...args: ConstructorParameters<typeof Entity>): ApplyComponents<T>;
+}
+
+export function EntityWithComponents<const T extends (new (...args: any[]) => Component)[]>(...components: T): EntityConstructor<Instances<T>> {
+	class __WithComponents extends Entity {
+		constructor(id: UUID, level: any) {
+			super(id, level);
+
+			for (const ctor of components) {
+				const component = new ctor(this);
+				this.components.add(component);
+			}
+		}
+	}
+
+	return __WithComponents as typeof __WithComponents & EntityConstructor<Instances<T>>;
+}
+
+export interface EntityRegistry extends Record<string, EntityConstructor<any>> {}
+
+export const entityRegistry: EntityRegistry = Object.create(null);
+
+export function registerEntity(name?: string) {
+	return function __registerEntity<Class extends EntityConstructor<any>>(target: Class) {
+		name ||= target.name;
+		logger.debug('Registered entity type: ' + name);
+		entityRegistry[name] = target;
+	};
+}
+
+type _Ctor = abstract new (...args: any[]) => any;
+export type Instances<T extends _Ctor[]> = T extends [] ? [] : T extends [infer C extends _Ctor, ...infer Rest extends _Ctor[]] ? [InstanceType<C>, ...Instances<Rest>] : never;
+
+export function* filterEntities(entities: Iterable<Entity>, selector: string): Iterable<Entity> {
 	if (typeof selector != 'string') {
 		throw new TypeError('selector must be of type string');
 	}
 
 	if (selector == '*') {
-		return new Set(entities);
+		yield* entities;
+		return;
 	}
 
-	const selected = new Set<Entity>();
 	for (const entity of entities) {
 		switch (selector[0]) {
 			case '@':
-				if (entity.name == selector.slice(1)) selected.add(entity);
+				if (entity.name == selector.slice(1)) yield entity;
 				break;
 			case '#':
-				if (entity.id == selector.slice(1)) selected.add(entity);
+				if (entity.id == selector.slice(1)) yield entity;
 				break;
 			case '.':
-				for (const type of entity.entityTypes) {
-					if (type.toLowerCase().includes(selector.slice(1).toLowerCase())) {
-						selected.add(entity);
-					}
-				}
+				if (entity.type.toLowerCase().includes(selector.slice(1).toLowerCase())) yield entity;
 				break;
 			default:
 				throw new Error('Invalid selector');
 		}
 	}
-	return selected;
 }

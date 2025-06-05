@@ -1,4 +1,4 @@
-import type { Entity } from './entity';
+import type { Entity } from './entity.js';
 
 export interface CommandExecutionContext {
 	executor: Entity & { permissionLevel?: number };

@@ -1,11 +1,10 @@
-import type { IVector3Like } from '@babylonjs/core/Maths/math.like';
-import { PerformanceMonitor } from '@babylonjs/core/Misc/performanceMonitor';
+import type { IVector3Like } from '@babylonjs/core/Maths/math.like.js';
+import { PerformanceMonitor } from '@babylonjs/core/Misc/performanceMonitor.js';
 import { EventEmitter } from 'eventemitter3';
 import { assignWithDefaults, pick, randomHex } from 'utilium';
-import type { Component } from './component';
-import { Player, type PlayerJSON } from './player';
-import { logger } from './utils';
-import { Entity, filterEntities, type EntityJSON } from './entity';
+import type { Component } from './component.js';
+import { Entity, filterEntities, type EntityJSON } from './entity.js';
+import { logger } from './utils.js';
 
 export interface MoveInfo<T> {
 	id: string;
@@ -27,13 +26,12 @@ export interface LevelEvents {
 	entity_removed: [EntityJSON];
 	entity_death: [EntityJSON];
 	entity_path_start: [string, IVector3Like[]];
-	player_reset: [PlayerJSON];
 	update: [];
 }
 
-export const levelEventNames = ['entity_added', 'entity_removed', 'entity_death', 'entity_path_start', 'player_reset', 'update'] as const satisfies readonly (keyof LevelEvents)[];
+export const levelEventNames = ['entity_added', 'entity_removed', 'entity_death', 'entity_path_start', 'update'] as const satisfies readonly (keyof LevelEvents)[];
 
-export let loadingOrder: (typeof Entity)[] = [Player, Entity];
+export let loadingOrder: (typeof Entity)[] = [Entity];
 
 export function setLoadingOrder(order: (typeof Entity)[]) {
 	loadingOrder = order;

@@ -1,27 +1,21 @@
-import type { Level } from './level';
-import { logger } from './utils';
+import type { Entity, EntityJSON } from './entity.js';
 
-export interface Component<TJSON = unknown> {
-	readonly id?: string;
+export abstract class Component<TMix extends {} = any, TData extends {} = TMix, TConfig extends {} = any> {
+	constructor(protected entity: Entity<TConfig> & TMix) {}
 
-	update?(): void;
-
-	toJSON(): TJSON;
-
-	fromJSON(data: TJSON): void;
+	abstract setup(): TMix | Promise<TMix>;
+	abstract load(data: EntityJSON & TData): void | Promise<void>;
+	abstract tick(): void | Promise<void>;
+	abstract dispose(): void | Promise<void>;
+	abstract toJSON(): TData;
 }
 
-export type ComponentData<T extends Component> = T extends Component<infer TJSON> ? TJSON : never;
+export type ComponentData<T extends Component> = T extends Component<any, infer TData> ? TData : never;
 
-export interface ComponentStatic<T extends Component = Component> {
-	name: string;
+export type ComponentConstructor<TMix extends {} = any, TData extends {} = any> = new () => Component<TMix, TData>;
 
-	FromJSON(data: ComponentData<T>, level?: Level): T;
-}
-
-export const components = new Map<string, ComponentStatic>();
-
-export function component<Class extends ComponentStatic>(target: Class) {
-	logger.debug('Registered component: ' + target.name);
-	components.set(target.name, target);
-}
+export type ComponentConfig<T extends Component[]> = T extends []
+	? {}
+	: T extends [Component<any, any, infer Config>, ...infer Rest extends Component[]]
+		? Config & ComponentConfig<Rest>
+		: never;
