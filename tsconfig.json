@@ -1,10 +1,10 @@
 {
 	"compilerOptions": {
-		"module": "NodeNext",
+		"module": "ESNext",
 		"target": "ESNext",
 		"outDir": "dist",
-		"lib": ["ESNext", "ESNext.Disposable"],
-		"moduleResolution": "NodeNext",
+		"lib": ["ESNext", "ESNext.Disposable", "DOM", "DOM.Iterable"],
+		"moduleResolution": "Bundler",
 		"declaration": true,
 		"strict": true,
 		"resolveJsonModule": true
