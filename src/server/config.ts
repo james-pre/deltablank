@@ -1,16 +1,15 @@
 import { writeFileSync } from 'node:fs';
 import { List } from 'utilium';
-import { config as coreConfig } from '../core/config.js';
 
 // whitelist
 
 export const whitelist = new List<string>();
-whitelist.on('update', () => writeFileSync('whitelist.json', whitelist.toJSON()));
+whitelist.on('update', () => writeFileSync('whitelist.json', JSON.stringify(whitelist)));
 
 // blacklist
 
 export const blacklist = new List<string>();
-blacklist.on('update', () => writeFileSync('blacklist.json', blacklist.toJSON()));
+blacklist.on('update', () => writeFileSync('blacklist.json', JSON.stringify(blacklist)));
 
 //operators
 
@@ -21,7 +20,7 @@ export interface OpsEntry {
 }
 
 export const ops = new List<OpsEntry>();
-ops.on('update', () => writeFileSync('ops.json', ops.toJSON()));
+ops.on('update', () => writeFileSync('ops.json', JSON.stringify(ops)));
 
 export interface ServerConfig {
 	whitelist: boolean;
@@ -32,6 +31,7 @@ export interface ServerConfig {
 	port: number;
 	public_uptime: boolean;
 	public_log: boolean;
+	tick_rate: number;
 }
 
 export const config: ServerConfig = {
@@ -42,5 +42,6 @@ export const config: ServerConfig = {
 	debug: false,
 	public_log: false,
 	public_uptime: false,
-	port: coreConfig.default_port,
+	port: 1123,
+	tick_rate: 60,
 };

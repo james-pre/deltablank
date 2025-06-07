@@ -26,10 +26,10 @@ export interface LevelEvents {
 	entity_removed: [EntityJSON];
 	entity_death: [EntityJSON];
 	entity_path_start: [string, IVector3Like[]];
-	update: [];
+	tick: [];
 }
 
-export const levelEventNames = ['entity_added', 'entity_removed', 'entity_death', 'entity_path_start', 'update'] as const satisfies readonly (keyof LevelEvents)[];
+export const levelEventNames = ['entity_added', 'entity_removed', 'entity_death', 'entity_path_start', 'tick'] as const satisfies readonly (keyof LevelEvents)[];
 
 export let loadingOrder: (typeof Entity)[] = [Entity];
 
@@ -37,7 +37,7 @@ export function setLoadingOrder(order: (typeof Entity)[]) {
 	loadingOrder = order;
 }
 
-export class Level extends EventEmitter<LevelEvents> implements Component<LevelJSON> {
+export class Level extends EventEmitter<LevelEvents> {
 	public id: string = randomHex(16);
 	public name: string = '';
 	public date = new Date();
@@ -53,12 +53,12 @@ export class Level extends EventEmitter<LevelEvents> implements Component<LevelJ
 		throw new ReferenceError('Entity does not exist');
 	}
 
-	public selectEntities(selector: string): Set<Entity> {
-		return filterEntities(this.entities, selector);
+	public *selectEntities(selector: string): Iterable<Entity> {
+		yield* filterEntities(this.entities, selector);
 	}
 
 	public entity<T extends Entity = Entity>(selector: string): T {
-		return [...this.selectEntities(selector)][0] as T;
+		return this.selectEntities(selector)[Symbol.iterator]().next().value as T;
 	}
 
 	// events and ticking
@@ -66,12 +66,12 @@ export class Level extends EventEmitter<LevelEvents> implements Component<LevelJ
 		return this._performanceMonitor.averageFPS;
 	}
 
-	public update() {
+	public tick() {
 		this._performanceMonitor.sampleFrame();
-		this.emit('update');
+		this.emit('tick');
 
 		for (const entity of this.entities) {
-			entity.update();
+			entity.tick();
 		}
 	}
 
@@ -83,7 +83,7 @@ export class Level extends EventEmitter<LevelEvents> implements Component<LevelJ
 		 * This prevents `level.getEntityByID(...)` from returning null
 		 * Which in turn prevents `.owner = .parent = this` from throwing an error
 		 */
-		entities.sort((a, b) => (order.indexOf(a.entityType) < order.indexOf(b.entityType) ? -1 : 1));
+		entities.sort((a, b) => (order.indexOf(a.type) < order.indexOf(b.type) ? -1 : 1));
 
 		return {
 			...pick(this, copy),
@@ -96,17 +96,19 @@ export class Level extends EventEmitter<LevelEvents> implements Component<LevelJ
 		assignWithDefaults(this as Level, pick(json, copy));
 		this.date = new Date(json.date);
 
-		logger.log(`Loading ${json.entities.length} entities`);
+		logger.info(`Loading ${json.entities.length} entities`);
 		const priorities = loadingOrder.map(type => type.name);
-		json.entities.sort((a, b) => (priorities.indexOf(a.entityType) > priorities.indexOf(b.entityType) ? 1 : -1));
+		json.entities.sort((a, b) => (priorities.indexOf(a.type) > priorities.indexOf(b.type) ? 1 : -1));
 		for (const data of json.entities) {
-			if (!priorities.includes(data.entityType)) {
-				logger.debug(`Loading ${data.entityType} ${data.id} (skipped)`);
+			if (!priorities.includes(data.type)) {
+				logger.debug(`Loading ${data.type} ${data.id} (skipped)`);
 				continue;
 			}
 
-			logger.debug(`Loading ${data.entityType} ${data.id}`);
-			loadingOrder[priorities.indexOf(data.entityType)].FromJSON(data, this);
+			logger.debug(`Loading ${data.type} ${data.id}`);
+			const Ctor = loadingOrder[priorities.indexOf(data.type)];
+			const entity = new Ctor(data.id, this);
+			entity.load(data);
 		}
 	}
 

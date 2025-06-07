@@ -3,7 +3,7 @@ import { EventEmitter } from 'eventemitter3';
 import { assignWithDefaults, type UUID } from 'utilium';
 import type { Component } from './component.js';
 import type { Level } from './level.js';
-import { logger } from './utils.js';
+import { logger, type Instances } from './utils.js';
 
 export interface EntityJSON {
 	id: UUID;
@@ -140,9 +140,6 @@ export function registerEntity(name?: string) {
 		entityRegistry[name] = target;
 	};
 }
-
-type _Ctor = abstract new (...args: any[]) => any;
-export type Instances<T extends _Ctor[]> = T extends [] ? [] : T extends [infer C extends _Ctor, ...infer Rest extends _Ctor[]] ? [InstanceType<C>, ...Instances<Rest>] : never;
 
 export function* filterEntities(entities: Iterable<Entity>, selector: string): Iterable<Entity> {
 	if (typeof selector != 'string') {

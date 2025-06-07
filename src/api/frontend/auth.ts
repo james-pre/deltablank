@@ -1,10 +1,10 @@
 /**
- * The current token used for authenication
+ * The current token used for authentication
  */
 export let authToken: string;
 
 /**
- * Sets the authenication token
+ * Sets the authentication token
  * @param token the new token
  */
 export function auth(token: string): void {

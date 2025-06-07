@@ -3,12 +3,11 @@ import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Socket } from 'socket.io';
 import { getAccount } from '../api/frontend/index.js';
-import { config as coreConfig } from '../core/config.js';
-import { Level, levelEventNames, type LevelJSON } from '../core/level';
-import { Client, addClient, clients, getClientByID } from './clients';
-import { blacklist, config, ops, whitelist, type OpsEntry, type ServerConfig } from './config';
-import { http, io } from './transport';
-import { logger, readJSONFile } from './utils';
+import { Level, levelEventNames, type LevelJSON } from '../core/level.js';
+import { Client, addClient, clients, getClientByID } from './clients.js';
+import { blacklist, config, ops, whitelist, type OpsEntry, type ServerConfig } from './config.js';
+import { http, io } from './transport.js';
+import { logger, readJSONFile } from './utils.js';
 
 let isStopping = false;
 
@@ -35,7 +34,7 @@ export function init() {
 	if (levelData) {
 		level.fromJSON(levelData);
 	} else {
-		logger.log('No level detected. Generating...');
+		logger.info('No level detected. Generating...');
 		level = new Level();
 	}
 
@@ -46,8 +45,8 @@ export function init() {
 	}
 
 	setInterval(() => {
-		level.update();
-	}, 1000 / coreConfig.tick_rate);
+		level.tick();
+	}, 1000 / config.tick_rate);
 
 	setInterval(() => {
 		clients.forEach(client => {
@@ -81,31 +80,31 @@ export function loadFile<T extends (OpsEntry[] & string[]) | ServerConfig>(data:
 }
 
 export function save() {
-	logger.log('Saved the current level');
+	logger.info('Saved the current level');
 	writeFileSync('level.json', JSON.stringify(level.toJSON()));
 }
 
 export function stop() {
 	isStopping = true;
-	logger.log('Stopping...');
+	logger.info('Stopping...');
 	for (const client of clients.values()) {
 		client.kick('Server shutting down');
 	}
 	io.close();
 	http.close();
-	logger.log('Stopped');
+	logger.info('Stopped');
 	process.exit();
 }
 
 export function restart() {
 	isStopping = true;
-	logger.log('Restarting...');
+	logger.info('Restarting...');
 	for (const client of clients.values()) {
 		client.kick('Server restarting');
 	}
 	io.close();
 	http.close();
-	logger.log('Restarted');
+	logger.info('Restarted');
 	setTimeout(() => {
 		process.on('exit', () => {
 			spawn(process.argv.shift()!, process.argv, {
@@ -157,7 +156,7 @@ export async function checkClientAuth(socket: Socket): Promise<undefined> {
 	const client = new Client(account.id, socket);
 	client.name = account.username;
 	clients.set(socket.id, client);
-	logger.log(`${client.name} connected with socket id ${socket.id}`);
+	logger.info(`${client.name} connected with socket id ${socket.id}`);
 	io.emit('chat', `${client.name} joined`);
 	return;
 }

@@ -32,7 +32,7 @@ export async function request<R>(method: string, endpoint: string, data: object 
 		init.body = JSON.stringify({ ...data });
 	}
 	const res = await fetch(`${config.url}/${endpoint}`, init);
-	const response: Response<R> = await res.json();
+	const response = (await res.json()) as Response<R>;
 	if (response.error && config.throw_errors) {
 		throw response.result;
 	}

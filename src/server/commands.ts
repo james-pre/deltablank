@@ -1,11 +1,11 @@
-import type { Command, CommandExecutionContext } from '../core/commands';
-import { commands as _commands, execCommandString as _execCommandString } from '../core/commands';
-import { Client } from './clients';
-import * as server from './server';
-import { blacklist } from './config';
-import { getClientByName } from './clients';
-import { logger } from './utils';
-import { getAccount } from '../api/frontend';
+import type { Command, CommandExecutionContext } from '../core/commands.js';
+import { commands as _commands, execCommandString as _execCommandString } from '../core/commands.js';
+import { Client } from './clients.js';
+import * as server from './server.js';
+import { blacklist } from './config.js';
+import { getClientByName } from './clients.js';
+import { logger } from './utils.js';
+import { getAccount } from '../api/frontend/index.js';
 
 export interface ServerCommandExecutionContext extends CommandExecutionContext {
 	executor: Client;
@@ -23,7 +23,7 @@ commands.set('kick', {
 			return 'Player is not online or does not exist';
 		}
 		client.kick(reason.join(' '));
-		logger.log(`${executor.name} kicked ${player}. Reason: ${reason.join(' ')}`);
+		logger.info(`${executor.name} kicked ${player}. Reason: ${reason.join(' ')}`);
 		return 'Kicked ' + player;
 	},
 	permissionLevel: 3,
@@ -35,7 +35,7 @@ commands.set('ban', {
 			return 'Player is not online or does not exist';
 		}
 		client.ban(reason.join(' '));
-		logger.log(`${executor.name} banned ${player}. Reason: ${reason.join(' ')}`);
+		logger.info(`${executor.name} banned ${player}. Reason: ${reason.join(' ')}`);
 		return 'Banned ' + player;
 	},
 	permissionLevel: 4,
@@ -45,7 +45,7 @@ commands.set('unban', {
 		getAccount('username', player)
 			.then(client => {
 				blacklist.delete(client.id);
-				logger.log(`${executor.name} unbanned ${player}. Reason: ${reason.join(' ')}`);
+				logger.info(`${executor.name} unbanned ${player}. Reason: ${reason.join(' ')}`);
 				executor.socket.emit('chat', `Unbanned ${player}`);
 			})
 			.catch(() => {
@@ -56,7 +56,7 @@ commands.set('unban', {
 });
 commands.set('log', {
 	exec({ executor }, ...message) {
-		logger.log(`${executor.name} logged ${message.join(' ')}`);
+		logger.info(`${executor.name} logged ${message.join(' ')}`);
 	},
 	permissionLevel: 1,
 });
@@ -66,7 +66,7 @@ commands.set('msg', {
 			return 'That user is not online';
 		}
 		getClientByName(player).socket.emit(`[${executor.name} -> me] ${message.join(' ')}`);
-		logger.log(`[${executor.name} -> ${player}] ${message.join(' ')}`);
+		logger.info(`[${executor.name} -> ${player}] ${message.join(' ')}`);
 		getClientByName(player).lastMessager = executor;
 		return `[me -> ${executor.name}] ${message.join(' ')}`;
 	},

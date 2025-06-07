@@ -1,17 +1,18 @@
 import type { Socket } from 'socket.io';
-import type { PlayerJSON } from '../core/player.js';
-import { Player } from '../core/player.js';
-import { level } from './server';
-import { blacklist } from './config';
-import { execCommandString } from './commands';
-import { logger } from './utils';
-import { io } from './transport';
 
-export class Client extends Player {
+import { level } from './server.js';
+import { blacklist } from './config.js';
+import { execCommandString } from './commands.js';
+import { logger } from './utils.js';
+import { io } from './transport.js';
+import { Entity, type EntityJSON } from '../core/entity.js';
+import type { UUID } from 'utilium';
+
+export class Client extends Entity {
 	lastMessager?: Client;
 	sentPackets = 0;
 	constructor(
-		id: string,
+		id: UUID,
 		public readonly socket: Socket
 	) {
 		super(id, level);
@@ -27,7 +28,7 @@ export class Client extends Player {
 		blacklist.add(this.id);
 	}
 
-	toJSON(): PlayerJSON {
+	toJSON(): EntityJSON {
 		return Object.assign(super.toJSON(), { nodeType: 'Player' });
 	}
 }
@@ -55,7 +56,7 @@ export function getClientBy<T extends keyof Client>(key: T, value: Client[T]): C
 	throw new ReferenceError('Client does not exist');
 }
 
-export function getClientByID(id: string): Client {
+export function getClientByID(id: UUID): Client {
 	return getClientBy('id', id);
 }
 
@@ -73,7 +74,7 @@ export function addClient(client: Client) {
 	});
 	client.socket.on('disconnect', reason => {
 		const message = getDisconnectReason(reason);
-		logger.log(`${client.name} left (${message})`);
+		logger.info(`${client.name} left (${message})`);
 		io.emit('chat', `${client.name} left`);
 		clients.delete(client.socket.id);
 		io.emit(
@@ -88,7 +89,7 @@ export function addClient(client: Client) {
 		}
 	});
 	client.socket.on('chat', data => {
-		logger.log(`(Chat) ${client.name}: ${data}`);
+		logger.info(`(Chat) ${client.name}: ${data}`);
 		io.emit('chat', `${client.name}: ${data}`);
 	});
 }

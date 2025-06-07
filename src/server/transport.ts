@@ -2,8 +2,8 @@ import type { Server as HTTPServer } from 'node:http';
 import { createServer } from 'node:http';
 import type { ListenOptions } from 'node:net';
 import { Server as SocketIOServer } from 'socket.io';
-import { config } from './config';
-import { logger } from './utils';
+import { config } from './config.js';
+import { logger } from './utils.js';
 
 export interface PingInfo {
 	current_clients: number;

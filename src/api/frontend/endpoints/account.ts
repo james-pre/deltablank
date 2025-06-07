@@ -1,6 +1,7 @@
 /**
  * Account-related endpoints
  */
+import type { UUID } from 'utilium';
 import type { Account, AccountResult, FullAccount, UniqueAccountKey } from '../../accounts.js';
 import { accountAttributes, checkAccountAttribute } from '../../accounts.js';
 import { Access } from '../../generic.js';
@@ -51,10 +52,10 @@ export async function login(email: string, password: string): Promise<Account & 
 /**
  * Logs an account out
  * @param id the account's id
- * @param reason why the account is being logged out (Requires authenication)
+ * @param reason why the account is being logged out (Requires authentication)
  * @returns True when successful
  */
-export async function logout(id: string, reason?: string): Promise<boolean> {
+export async function logout(id: UUID, reason?: string): Promise<boolean> {
 	checkAccountAttribute('id', id);
 	return await request<boolean>('POST', 'account/logout', { id, reason });
 }
@@ -74,10 +75,10 @@ export async function createAccount(email: string, username: string, password: s
 }
 
 /**
- * Deletes an account (Requires authenication)
+ * Deletes an account (Requires authentication)
  * @param id the ID of the account to delete
  */
-export async function deleteAccount(id: string, reason?: string): Promise<void> {
+export async function deleteAccount(id: UUID, reason?: string): Promise<void> {
 	checkAccountAttribute('id', id);
 	await request<void>('POST', 'account/delete', { id, reason });
 	return;
@@ -135,7 +136,7 @@ export async function getAllAccounts(offset = 0, limit = 1000): Promise<Account[
  * @param reason the reason for the change
  * @returns the updated account data
  */
-export async function update<K extends keyof FullAccount>(id: string, key: K, value: FullAccount[K], reason?: string): Promise<Account> {
+export async function update<K extends keyof FullAccount>(id: UUID, key: K, value: FullAccount[K], reason?: string): Promise<Account> {
 	checkAccountAttribute('id', id);
 	checkAccountAttribute(key, value);
 	const result = await request<AccountResult>('POST', 'account/update', { id, key, value, reason });
@@ -145,10 +146,10 @@ export async function update<K extends keyof FullAccount>(id: string, key: K, va
 /**
  * Disables an account
  * @param id the account's id
- * @param reason why the account is being disabled (Requires authenication)
+ * @param reason why the account is being disabled (Requires authentication)
  * @returns True when successful
  */
-export async function disable(id: string, reason?: string): Promise<boolean> {
+export async function disable(id: UUID, reason?: string): Promise<boolean> {
 	const account = await update(id, 'is_disabled', true, reason);
 	return account.is_disabled;
 }
@@ -156,10 +157,10 @@ export async function disable(id: string, reason?: string): Promise<boolean> {
 /**
  * Enables an account
  * @param id the account's id
- * @param reason why the account is being enabled (Requires authenication)
+ * @param reason why the account is being enabled (Requires authentication)
  * @returns True when successful
  */
-export async function enable(id: string, reason?: string): Promise<boolean> {
+export async function enable(id: UUID, reason?: string): Promise<boolean> {
 	const account = await update(id, 'is_disabled', false, reason);
 	return !account.is_disabled;
 }

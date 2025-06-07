@@ -1,3 +1,4 @@
+import type { UUID } from 'utilium';
 import { Access } from './generic.js';
 import type { KeyValue } from './utils.js';
 
@@ -27,7 +28,7 @@ export enum AccountType {
  * @see Account
  */
 export interface AccountResult {
-	id: string;
+	id: UUID;
 	username: string;
 	email?: string;
 	type: AccountType;
@@ -55,7 +56,7 @@ export interface Account {
 	/**
 	 * The ID of the account
 	 */
-	id: string;
+	id: UUID;
 
 	/**
 	 * The username of the account
