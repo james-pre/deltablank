@@ -1,9 +1,10 @@
 import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import { EventEmitter } from 'eventemitter3';
-import { assignWithDefaults, type UUID } from 'utilium';
+import { assignWithDefaults } from 'utilium';
+import type { UUID, InstancesFor } from 'utilium';
 import type { Component, ComponentMixin } from './component.js';
 import type { Level } from './level.js';
-import { logger, vectorString, type Instances } from './utils.js';
+import { logger, vectorString } from './utils.js';
 import dedent from 'dedent';
 
 export interface EntityJSON {
@@ -154,7 +155,7 @@ export interface EntityConstructor<T extends Component[]> {
 /**
  * Extend `Entity` and automatically apply the given components.
  */
-export function EntityWithComponents<const T extends (new (...args: any[]) => Component)[]>(...components: T): EntityConstructor<Instances<T>> {
+export function EntityWithComponents<const T extends (new (...args: any[]) => Component)[]>(...components: T): EntityConstructor<InstancesFor<T>> {
 	class __WithComponents extends Entity {
 		constructor(id: UUID, level: any) {
 			super(id, level);
@@ -166,7 +167,7 @@ export function EntityWithComponents<const T extends (new (...args: any[]) => Co
 		}
 	}
 
-	return __WithComponents as typeof __WithComponents & EntityConstructor<Instances<T>>;
+	return __WithComponents as typeof __WithComponents & EntityConstructor<InstancesFor<T>>;
 }
 
 /**
@@ -184,7 +185,7 @@ export type EntityConfig<T extends Component[]> = T extends []
  */
 export interface EntityWithOptions<T extends (new (...args: any[]) => Component)[]> {
 	components: T;
-	config: EntityConfig<Instances<T>>;
+	config: EntityConfig<InstancesFor<T>>;
 	name: string;
 }
 
@@ -192,7 +193,7 @@ export interface EntityWithOptions<T extends (new (...args: any[]) => Component)
  * A shortcut to create an entity class/constructor with some components and config.
  * This comes with proper TS typing of the config, unlike class extending `EntityWithComponents(...)`.
  */
-export function EntityWith<const T extends (new (...args: any[]) => Component)[]>(opt: EntityWithOptions<T>): EntityConstructor<Instances<T>> & EntityWithOptions<T> {
+export function EntityWith<const T extends (new (...args: any[]) => Component)[]>(opt: EntityWithOptions<T>): EntityConstructor<InstancesFor<T>> & EntityWithOptions<T> {
 	return Object.assign(EntityWithComponents(...opt.components), opt);
 }
 
