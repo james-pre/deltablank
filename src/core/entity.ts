@@ -65,7 +65,7 @@ export class Entity<Config extends {} = any>
 
 	public async dispose(): Promise<void> {
 		await this.onDispose?.();
-		for (const component of this.components) await component.dispose();
+		for (const component of this.components) await component.dispose?.();
 		this.level.entities.delete(this);
 		this.level.emit('entity_removed', this.toJSON());
 	}
@@ -84,7 +84,7 @@ export class Entity<Config extends {} = any>
 				position: this.position.asArray(),
 				rotation: this.rotation.asArray(),
 			},
-			...this.components.values().map(c => c.toJSON())
+			...this.components.values().map(c => c.toJSON?.() || {})
 		);
 	}
 
@@ -97,7 +97,7 @@ export class Entity<Config extends {} = any>
 			rotation: data.rotation && Vector3.FromArray(data.rotation),
 			parent: data.parent ? this.level.getEntityByID(data.parent) : undefined,
 		} as any);
-		for (const component of this.components) component.load(data);
+		for (const component of this.components) component.load?.(data);
 	}
 }
 
@@ -128,6 +128,12 @@ export function EntityWithComponents<const T extends (new (...args: any[]) => Co
 
 	return __WithComponents as typeof __WithComponents & EntityConstructor<Instances<T>>;
 }
+
+export type EntityConfig<T extends Component[]> = T extends []
+	? {}
+	: T extends [Component<any, any, infer Config>, ...infer Rest extends Component[]]
+		? Config & EntityConfig<Rest>
+		: never;
 
 export interface EntityRegistry extends Record<string, EntityConstructor<any>> {}
 
