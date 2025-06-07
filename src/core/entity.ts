@@ -1,9 +1,10 @@
 import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import { EventEmitter } from 'eventemitter3';
 import { assignWithDefaults, type UUID } from 'utilium';
-import type { Component } from './component.js';
+import type { Component, ComponentMixin } from './component.js';
 import type { Level } from './level.js';
-import { logger, type Instances } from './utils.js';
+import { logger, vectorString, type Instances } from './utils.js';
+import dedent from 'dedent';
 
 export interface EntityJSON {
 	id: UUID;
@@ -22,6 +23,16 @@ export class Entity<Config extends {} = any>
 {
 	protected components = new Set<Component>();
 
+	/**
+	 * @todo Make this constant time.
+	 */
+	public hasComponent<T extends Component>(ctor: new (...args: any[]) => T): this is this & ComponentMixin<T> {
+		for (const component of this.components) {
+			if (component instanceof ctor) return true;
+		}
+		return false;
+	}
+
 	public get [Symbol.toStringTag](): string {
 		return this.constructor.name;
 	}
@@ -37,6 +48,14 @@ export class Entity<Config extends {} = any>
 	public position: Vector3 = Vector3.Zero();
 	public rotation: Vector3 = Vector3.Zero();
 
+	public get absolutePosition(): Vector3 {
+		return this.parent instanceof Entity ? this.parent.absolutePosition.add(this.position) : this.position;
+	}
+
+	public get absoluteRotation(): Vector3 {
+		return this.parent instanceof Entity ? this.parent.absoluteRotation.add(this.rotation) : this.rotation;
+	}
+
 	declare ['constructor']: typeof Entity & { config: Config };
 
 	public constructor(
@@ -50,7 +69,12 @@ export class Entity<Config extends {} = any>
 		queueMicrotask(() => this.emit('created'));
 	}
 
-	public setup?(): void | Promise<void>;
+	public onSetup?(): void | Promise<void>;
+
+	public async setup(): Promise<void> {
+		for (const component of this.components) Object.assign(this, await component.setup?.());
+		await this.onSetup?.();
+	}
 
 	public onTick?(): void | Promise<void>;
 
@@ -99,6 +123,16 @@ export class Entity<Config extends {} = any>
 		} as any);
 		for (const component of this.components) component.load?.(data);
 	}
+
+	public toString(): string {
+		return dedent`${this.type} ${JSON.stringify(this.name)}
+		position: ${vectorString(this.position)}
+		rotation: ${vectorString(this.rotation)}
+		${Array.from(this.components)
+			.map(c => `${c.constructor.name} ${c.toString === Object.prototype.toString ? '' : c.toString()}`)
+			.join('\n')}
+		`;
+	}
 }
 
 /**
@@ -110,10 +144,16 @@ export type ApplyComponents<T extends Component[], Result extends Entity = Entit
 		? ApplyComponents<Rest, Result & TMix>
 		: never;
 
+/**
+ * A constructor for an entity with some components.
+ */
 export interface EntityConstructor<T extends Component[]> {
 	new (...args: ConstructorParameters<typeof Entity>): ApplyComponents<T>;
 }
 
+/**
+ * Extend `Entity` and automatically apply the given components.
+ */
 export function EntityWithComponents<const T extends (new (...args: any[]) => Component)[]>(...components: T): EntityConstructor<Instances<T>> {
 	class __WithComponents extends Entity {
 		constructor(id: UUID, level: any) {
@@ -129,11 +169,32 @@ export function EntityWithComponents<const T extends (new (...args: any[]) => Co
 	return __WithComponents as typeof __WithComponents & EntityConstructor<Instances<T>>;
 }
 
+/**
+ * Configuration for an entity's components.
+ */
 export type EntityConfig<T extends Component[]> = T extends []
 	? {}
 	: T extends [Component<any, any, infer Config>, ...infer Rest extends Component[]]
 		? Config & EntityConfig<Rest>
 		: never;
+
+/**
+ * Options for `EntityWith`
+ * @see EntityWith
+ */
+export interface EntityWithOptions<T extends (new (...args: any[]) => Component)[]> {
+	components: T;
+	config: EntityConfig<Instances<T>>;
+	name: string;
+}
+
+/**
+ * A shortcut to create an entity class/constructor with some components and config.
+ * This comes with proper TS typing of the config, unlike class extending `EntityWithComponents(...)`.
+ */
+export function EntityWith<const T extends (new (...args: any[]) => Component)[]>(opt: EntityWithOptions<T>): EntityConstructor<Instances<T>> & EntityWithOptions<T> {
+	return Object.assign(EntityWithComponents(...opt.components), opt);
+}
 
 export interface EntityRegistry extends Record<string, EntityConstructor<any>> {}
 

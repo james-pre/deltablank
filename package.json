@@ -55,6 +55,7 @@
 	},
 	"dependencies": {
 		"@babylonjs/core": "^7.22.1",
+		"dedent": "^1.6.0",
 		"eventemitter3": "^5.0.1",
 		"http-status-codes": "^2.3.0",
 		"lit": "^3.3.0",

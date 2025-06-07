@@ -1,4 +1,4 @@
-import type { IVector3Like } from '@babylonjs/core/Maths/math.like.js';
+import type { IVector2Like, IVector3Like } from '@babylonjs/core/Maths/math.like.js';
 import { Vector2, Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import { Logger } from 'logzen';
 
@@ -23,3 +23,9 @@ export function roundVector({ x, y, z }: IVector3Like) {
 
 type _Ctor = abstract new (...args: any[]) => any;
 export type Instances<T extends _Ctor[]> = T extends [] ? [] : T extends [infer C extends _Ctor, ...infer Rest extends _Ctor[]] ? [InstanceType<C>, ...Instances<Rest>] : never;
+
+export function vectorString(vector: IVector3Like | IVector2Like, precision: number = 2): string {
+	return 'z' in vector
+		? `(${vector.x.toFixed(precision)}, ${vector.y.toFixed(precision)}, ${vector.z.toFixed(precision)})`
+		: `(${vector.x.toFixed(precision)}, ${vector.y.toFixed(precision)})`;
+}

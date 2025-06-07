@@ -1,6 +1,6 @@
 import type { Entity, EntityJSON } from './entity.js';
 
-export abstract class Component<TMix extends {} = any, TData extends {} = TMix, TConfig extends {} = any> {
+export abstract class Component<TMix extends {} = any, TData extends {} = TMix, TConfig extends {} = {}> {
 	protected get config(): TConfig {
 		return this.entity.constructor.config;
 	}
@@ -13,6 +13,8 @@ export abstract class Component<TMix extends {} = any, TData extends {} = TMix, 
 	dispose?(): void | Promise<void>;
 	toJSON?(): TData;
 }
+
+export type ComponentMixin<T extends Component> = T extends Component<infer TMix, any> ? TMix : never;
 
 export type ComponentData<T extends Component> = T extends Component<any, infer TData> ? TData : never;
 
