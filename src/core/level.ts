@@ -1,8 +1,7 @@
 import type { IVector3Like } from '@babylonjs/core/Maths/math.like.js';
 import { PerformanceMonitor } from '@babylonjs/core/Misc/performanceMonitor.js';
 import { EventEmitter } from 'eventemitter3';
-import { assignWithDefaults, pick, randomHex } from 'utilium';
-import type { Component } from './component.js';
+import { assignWithDefaults, pick, type UUID } from 'utilium';
 import { Entity, filterEntities, type EntityJSON } from './entity.js';
 import { logger } from './utils.js';
 
@@ -15,7 +14,7 @@ export interface LevelJSON {
 	date: string;
 	difficulty: number;
 	name: string;
-	id: string;
+	id: UUID;
 	entities: EntityJSON[];
 }
 
@@ -38,14 +37,14 @@ export function setLoadingOrder(order: (typeof Entity)[]) {
 }
 
 export class Level extends EventEmitter<LevelEvents> {
-	public id: string = randomHex(16);
+	public id: UUID = crypto.randomUUID();
 	public name: string = '';
 	public date = new Date();
 	public difficulty = 1;
 	public entities: Set<Entity> = new Set();
 	private _performanceMonitor = new PerformanceMonitor(60);
 
-	public getEntityByID<N extends Entity = Entity>(id: string): N {
+	public getEntityByID<N extends Entity = Entity>(id: UUID): N {
 		for (const entity of this.entities) {
 			if (entity.id == id) return entity as N;
 		}

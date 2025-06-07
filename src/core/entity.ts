@@ -10,7 +10,7 @@ export interface EntityJSON {
 	id: UUID;
 	type: string;
 	name: string;
-	parent?: string;
+	parent?: UUID;
 	position: [number, number, number];
 	rotation: [number, number, number];
 }

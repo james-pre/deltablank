@@ -5,4 +5,5 @@ docs
 tmp
 build
 tests/coverage
-tmp.*
+.tmp.*
+_tmp.*
