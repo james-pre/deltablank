@@ -1,22 +1,17 @@
-import type { Command, CommandExecutionContext } from '../core/commands.js';
-import { commands as _commands, execCommandString as _execCommandString } from '../core/commands.js';
-import { Client } from './clients.js';
-import * as server from './server.js';
-import { blacklist } from './config.js';
-import { getClientByName } from './clients.js';
-import { logger } from './utils.js';
 import { getAccount } from '../api/frontend/index.js';
+import { addCommand, commands } from '../core/commands.js';
+import { Client, getClientByName } from './clients.js';
+import { blacklist } from './config.js';
+import * as server from './server.js';
+import { logger } from './utils.js';
 
-export interface ServerCommandExecutionContext extends CommandExecutionContext {
+interface ExecutionContext {
 	executor: Client;
 }
 
-export interface ServerCommand extends Command {
-	exec(context: ServerCommandExecutionContext, ...args: string[]): string | void;
-}
-
-export const commands: Map<string, ServerCommand> = new Map([..._commands.entries()]);
-commands.set('kick', {
+addCommand({
+	name: 'kick',
+	permissionLevel: 3,
 	exec({ executor }, player, ...reason: string[]) {
 		const client = getClientByName(player);
 		if (!client) {
@@ -26,9 +21,11 @@ commands.set('kick', {
 		logger.info(`${executor.name} kicked ${player}. Reason: ${reason.join(' ')}`);
 		return 'Kicked ' + player;
 	},
-	permissionLevel: 3,
 });
-commands.set('ban', {
+
+addCommand({
+	name: 'ban',
+	permissionLevel: 4,
 	exec({ executor }, player, ...reason: string[]) {
 		const client = getClientByName(player);
 		if (!client) {
@@ -38,9 +35,11 @@ commands.set('ban', {
 		logger.info(`${executor.name} banned ${player}. Reason: ${reason.join(' ')}`);
 		return 'Banned ' + player;
 	},
-	permissionLevel: 4,
 });
-commands.set('unban', {
+
+addCommand<ExecutionContext>({
+	name: 'unban',
+	permissionLevel: 4,
 	exec({ executor }, player, ...reason) {
 		getAccount('username', player)
 			.then(client => {
@@ -52,15 +51,19 @@ commands.set('unban', {
 				executor.socket.emit('chat', 'Player is not online or does not exist');
 			});
 	},
-	permissionLevel: 4,
 });
-commands.set('log', {
+
+addCommand({
+	name: 'log',
+	permissionLevel: 1,
 	exec({ executor }, ...message) {
 		logger.info(`${executor.name} logged ${message.join(' ')}`);
 	},
-	permissionLevel: 1,
 });
-commands.set('msg', {
+
+addCommand<ExecutionContext>({
+	name: 'msg',
+	permissionLevel: 0,
 	exec({ executor }, player, ...message) {
 		if (!(getClientByName(player) instanceof Client)) {
 			return 'That user is not online';
@@ -70,33 +73,36 @@ commands.set('msg', {
 		getClientByName(player).lastMessager = executor;
 		return `[me -> ${executor.name}] ${message.join(' ')}`;
 	},
-	permissionLevel: 0,
 });
-commands.set('reply', {
+
+addCommand<ExecutionContext>({
+	name: 'reply',
+	permissionLevel: 0,
 	exec({ executor }, ...message) {
 		return executor.lastMessager ? commands.get('msg')!.exec({ executor }, executor.lastMessager.name, ...message) : 'No one messaged you yet =(';
 	},
-	permissionLevel: 0,
 });
-commands.set('stop', {
+
+addCommand({
+	name: 'stop',
+	permissionLevel: 4,
 	exec() {
 		server.stop();
 	},
-	permissionLevel: 4,
 });
-commands.set('restart', {
+addCommand({
+	name: 'restart',
+	permissionLevel: 4,
 	exec() {
 		server.restart();
 	},
-	permissionLevel: 4,
 });
-commands.set('save', {
+
+addCommand({
+	name: 'save',
+	permissionLevel: 4,
 	exec() {
 		server.save();
 		return 'Saved the current level';
 	},
-	permissionLevel: 4,
 });
-export function execCommandString(string: string, context: ServerCommandExecutionContext, ignoreOp?: boolean) {
-	return _execCommandString(string, context, ignoreOp);
-}

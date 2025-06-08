@@ -49,12 +49,12 @@ export function init() {
 	}, 1000 / config.tick_rate);
 
 	setInterval(() => {
-		clients.forEach(client => {
+		for (const client of clients.values()) {
 			if (client.sentPackets > 50) {
 				client.kick('Sending to many packets');
 			}
 			client.sentPackets = 0;
-		});
+		}
 	}, 1000);
 }
 
@@ -84,6 +84,12 @@ export function save() {
 	writeFileSync('level.json', JSON.stringify(level.toJSON()));
 }
 
+let _onCloseHandler: (() => void) | undefined;
+
+export function onClose(handler: () => void): void {
+	_onCloseHandler = handler;
+}
+
 export function stop() {
 	isStopping = true;
 	logger.info('Stopping...');
@@ -92,6 +98,7 @@ export function stop() {
 	}
 	io.close();
 	http.close();
+	_onCloseHandler?.();
 	logger.info('Stopped');
 	process.exit();
 }
@@ -104,6 +111,7 @@ export function restart() {
 	}
 	io.close();
 	http.close();
+	_onCloseHandler?.();
 	logger.info('Restarted');
 	setTimeout(() => {
 		process.on('exit', () => {

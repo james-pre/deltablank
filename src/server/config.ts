@@ -16,7 +16,7 @@ blacklist.on('update', () => writeFileSync('blacklist.json', JSON.stringify(blac
 export interface OpsEntry {
 	id: string;
 	bypassLimit: boolean;
-	oplvl: number;
+	permissionLevel: number;
 }
 
 export const ops = new List<OpsEntry>();

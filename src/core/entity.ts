@@ -1,11 +1,11 @@
 import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
+import dedent from 'dedent';
 import { EventEmitter } from 'eventemitter3';
+import type { ConstructorsFor, InstancesFor, UUID } from 'utilium';
 import { assignWithDefaults } from 'utilium';
-import type { UUID, InstancesFor } from 'utilium';
 import type { Component, ComponentMixin } from './component.js';
 import type { Level } from './level.js';
 import { logger, vectorString } from './utils.js';
-import dedent from 'dedent';
 
 export interface EntityJSON {
 	id: UUID;
@@ -16,7 +16,7 @@ export interface EntityJSON {
 	rotation: [number, number, number];
 }
 
-export class Entity<Config extends {} = any>
+export class Entity<TComponents extends readonly Component[] = any>
 	extends EventEmitter<{
 		created: [];
 	}>
@@ -24,10 +24,14 @@ export class Entity<Config extends {} = any>
 {
 	protected components = new Set<Component>();
 
+	public isType<T extends Entity>(type: string): this is T {
+		return this.type === type;
+	}
+
 	/**
 	 * @todo Make this constant time.
 	 */
-	public hasComponent<T extends Component>(ctor: new (...args: any[]) => T): this is this & ComponentMixin<T> {
+	public hasComponent<T extends Component>(ctor: abstract new (...args: any[]) => T): this is this & ComponentMixin<T> {
 		for (const component of this.components) {
 			if (component instanceof ctor) return true;
 		}
@@ -57,7 +61,7 @@ export class Entity<Config extends {} = any>
 		return this.parent instanceof Entity ? this.parent.absoluteRotation.add(this.rotation) : this.rotation;
 	}
 
-	declare ['constructor']: typeof Entity & { config: Config };
+	declare ['constructor']: typeof Entity & { config: EntityConfig<TComponents> };
 
 	public constructor(
 		public id: UUID = crypto.randomUUID(),
@@ -99,7 +103,7 @@ export class Entity<Config extends {} = any>
 		await this.dispose();
 	}
 
-	public toJSON(): EntityJSON {
+	public toJSON(): ApplyComponentsJSON<TComponents> {
 		return Object.assign(
 			{
 				id: this.id,
@@ -113,7 +117,7 @@ export class Entity<Config extends {} = any>
 		);
 	}
 
-	public load(data: Partial<EntityJSON>): void {
+	public load(data: Partial<ApplyComponentsJSON<TComponents>>): void {
 		assignWithDefaults(this, {
 			id: data.id,
 			type: data.type,
@@ -134,14 +138,42 @@ export class Entity<Config extends {} = any>
 			.join('\n')}
 		`;
 	}
+
+	public matches(selector: string): boolean {
+		if (selector == '*') return true;
+
+		switch (selector[0]) {
+			case '@':
+				if (this.name == selector.slice(1)) return true;
+				break;
+			case '#':
+				if (this.id == selector.slice(1)) return true;
+				break;
+			case '.':
+				if (this.type.toLowerCase().includes(selector.slice(1).toLowerCase())) return true;
+				break;
+			default:
+				throw new Error('Invalid selector');
+		}
+		return false;
+	}
 }
+
+/**
+ * Entity JSON representation with components applied.
+ */
+export type ApplyComponentsJSON<T extends readonly Component[], Result extends EntityJSON = EntityJSON> = T extends []
+	? Result
+	: T extends readonly [Component<{}, infer TData>, ...infer Rest extends readonly Component[]]
+		? ApplyComponentsJSON<Rest, Result & TData>
+		: never;
 
 /**
  * An entity with some components applied
  */
-export type ApplyComponents<T extends Component[], Result extends Entity = Entity> = T extends []
+export type ApplyComponents<T extends readonly Component[], Result extends Entity = Entity<T>> = T extends []
 	? Result
-	: T extends [Component<infer TMix, any>, ...infer Rest extends Component[]]
+	: T extends readonly [Component<infer TMix, any>, ...infer Rest extends readonly Component[]]
 		? ApplyComponents<Rest, Result & TMix>
 		: never;
 
@@ -150,6 +182,7 @@ export type ApplyComponents<T extends Component[], Result extends Entity = Entit
  */
 export interface EntityConstructor<T extends Component[]> {
 	new (...args: ConstructorParameters<typeof Entity>): ApplyComponents<T>;
+	components: ConstructorsFor<T>;
 }
 
 /**
@@ -157,6 +190,8 @@ export interface EntityConstructor<T extends Component[]> {
  */
 export function EntityWithComponents<const T extends (new (...args: any[]) => Component)[]>(...components: T): EntityConstructor<InstancesFor<T>> {
 	class __WithComponents extends Entity {
+		static components = components;
+
 		constructor(id: UUID, level: any) {
 			super(id, level);
 
@@ -173,9 +208,9 @@ export function EntityWithComponents<const T extends (new (...args: any[]) => Co
 /**
  * Configuration for an entity's components.
  */
-export type EntityConfig<T extends Component[]> = T extends []
+export type EntityConfig<T extends readonly Component[]> = T extends []
 	? {}
-	: T extends [Component<any, any, infer Config>, ...infer Rest extends Component[]]
+	: T extends readonly [Component<any, any, infer Config>, ...infer Rest extends readonly Component[]]
 		? Config & EntityConfig<Rest>
 		: never;
 
@@ -183,7 +218,7 @@ export type EntityConfig<T extends Component[]> = T extends []
  * Options for `EntityWith`
  * @see EntityWith
  */
-export interface EntityWithOptions<T extends (new (...args: any[]) => Component)[]> {
+export interface EntityWithOptions<T extends readonly (new (...args: any[]) => Component)[]> {
 	components: T;
 	config: EntityConfig<InstancesFor<T>>;
 	name: string;
@@ -193,20 +228,23 @@ export interface EntityWithOptions<T extends (new (...args: any[]) => Component)
  * A shortcut to create an entity class/constructor with some components and config.
  * This comes with proper TS typing of the config, unlike class extending `EntityWithComponents(...)`.
  */
-export function EntityWith<const T extends (new (...args: any[]) => Component)[]>(opt: EntityWithOptions<T>): EntityConstructor<InstancesFor<T>> & EntityWithOptions<T> {
-	return Object.assign(EntityWithComponents(...opt.components), opt);
+export function EntityWith<const T extends readonly (new (...args: any[]) => Component)[]>(opt: EntityWithOptions<T>): EntityConstructor<InstancesFor<T>> & EntityWithOptions<T> {
+	const Constructor = EntityWithComponents(...opt.components) as EntityConstructor<InstancesFor<[...T]>> & typeof opt;
+	Object.defineProperties(Constructor, {
+		config: { value: opt.config },
+		name: { value: opt.name },
+	});
+	registerEntity(Constructor);
+	return Constructor;
 }
 
 export interface EntityRegistry extends Record<string, EntityConstructor<any>> {}
 
 export const entityRegistry: EntityRegistry = Object.create(null);
 
-export function registerEntity(name?: string) {
-	return function __registerEntity<Class extends EntityConstructor<any>>(target: Class) {
-		name ||= target.name;
-		logger.debug('Registered entity type: ' + name);
-		entityRegistry[name] = target;
-	};
+export function registerEntity<Class extends EntityConstructor<any>>(target: Class) {
+	logger.debug('Registered entity type: ' + target.name);
+	entityRegistry[target.name] = target;
 }
 
 export function* filterEntities(entities: Iterable<Entity>, selector: string): Iterable<Entity> {

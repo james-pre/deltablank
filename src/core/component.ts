@@ -1,12 +1,13 @@
 import { pick } from 'utilium';
 import type { Entity, EntityJSON } from './entity.js';
+import { logger } from './utils.js';
 
 export abstract class Component<TMix extends {} = any, TData extends {} = TMix, TConfig extends {} = {}> {
 	protected get config(): TConfig {
 		return this.entity.constructor.config;
 	}
 
-	constructor(protected entity: Entity<TConfig> & TMix) {}
+	constructor(protected entity: Entity<[Component<TMix, TData, TConfig>]> & TMix) {}
 
 	setup?(): TMix | Promise<TMix>;
 	load?(data: EntityJSON & TData): void | Promise<void>;
@@ -19,7 +20,7 @@ export type ComponentMixin<T extends Component> = T extends Component<infer TMix
 
 export type ComponentData<T extends Component> = T extends Component<any, infer TData> ? TData : never;
 
-export type ComponentConfig<T extends Component> = T extends Component<any, any, infer Config> ? Config : never;
+export type ComponentConfig<T extends Component> = T extends Component<any, any, infer Config> ? Config : {};
 
 /**
  * A small utility components that copies data between an entity and its JSON representation.
@@ -46,3 +47,13 @@ export class CopyData<TData extends {} = any> extends Component<TData, TData, { 
 		Object.assign(this.entity, pick(data, this.keys));
 	}
 }
+
+export function registerComponent<T extends typeof Component<any, any, any>>(component: T): void {
+	if (componentRegistry.has(component.name)) {
+		throw new Error(`Component with name "${component.name}" already exists`);
+	}
+	componentRegistry.set(component.name, component);
+	logger.debug(`Registered component: ${component.name}`);
+}
+
+export const componentRegistry = new Map<string, typeof Component>();

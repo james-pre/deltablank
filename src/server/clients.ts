@@ -1,12 +1,12 @@
 import type { Socket } from 'socket.io';
 
-import { level } from './server.js';
-import { blacklist } from './config.js';
-import { execCommandString } from './commands.js';
-import { logger } from './utils.js';
-import { io } from './transport.js';
-import { Entity, type EntityJSON } from '../core/entity.js';
 import type { UUID } from 'utilium';
+import { Entity, type EntityJSON } from '../core/entity.js';
+import { execCommandString } from '../core/commands.js';
+import { blacklist } from './config.js';
+import { level } from './server.js';
+import { io } from './transport.js';
+import { logger } from './utils.js';
 
 export class Client extends Entity {
 	lastMessager?: Client;
@@ -26,10 +26,6 @@ export class Client extends Entity {
 	ban(message: string) {
 		this.kick(`You have been banned from this server: ${message}`);
 		blacklist.add(this.id);
-	}
-
-	toJSON(): EntityJSON {
-		return Object.assign(super.toJSON(), { nodeType: 'Player' });
 	}
 }
 
@@ -92,4 +88,11 @@ export function addClient(client: Client) {
 		logger.info(`(Chat) ${client.name}: ${data}`);
 		io.emit('chat', `${client.name}: ${data}`);
 	});
+	for (const handler of clientAddedHandlers) handler(client);
+}
+
+const clientAddedHandlers: ((client: Client) => void)[] = [];
+
+export function onClientAdded(handler: (client: Client) => void): void {
+	clientAddedHandlers.push(handler);
 }
