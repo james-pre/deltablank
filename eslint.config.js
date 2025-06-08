@@ -3,7 +3,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config({
-	name: 'Blanked',
+	name: 'Blank Engine',
 	extends: [eslint.configs.recommended, ...tseslint.configs.recommendedTypeChecked],
 	files: ['src/**/*.ts', 'tests/**/*.ts'],
 	languageOptions: {

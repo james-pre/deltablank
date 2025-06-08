@@ -1,7 +1,7 @@
 {
-	"name": "blanked",
+	"name": "blank-engine",
 	"version": "0.0.0-prototype",
-	"description": "An engine designed for making 3D (and in the future, 2D) experiences.",
+	"description": "An engine designed for making 3D experiences.",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"keywords": [],
@@ -16,15 +16,15 @@
 		"eslint.shared.js"
 	],
 	"type": "module",
-	"homepage": "https://github.com/james-pre/blanked",
+	"homepage": "https://github.com/james-pre/blank",
 	"author": "James Prevett <jp@jamespre.dev> (https://jamespre.dev)",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/james-pre/blanked.git"
+		"url": "git+https://github.com/james-pre/blank.git"
 	},
 	"bugs": {
-		"url": "https://github.com/james-pre/blanked/issues"
+		"url": "https://github.com/james-pre/blank/issues"
 	},
 	"engines": {
 		"node": ">= 22"
