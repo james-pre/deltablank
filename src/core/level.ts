@@ -65,12 +65,12 @@ export class Level extends EventEmitter<LevelEvents> {
 		return this._performanceMonitor.averageFPS;
 	}
 
-	public tick() {
+	public async tick() {
 		this._performanceMonitor.sampleFrame();
 		this.emit('tick');
 
 		for (const entity of this.entities) {
-			entity.tick();
+			await entity.tick();
 		}
 	}
 
@@ -91,7 +91,7 @@ export class Level extends EventEmitter<LevelEvents> {
 		};
 	}
 
-	public fromJSON(json: LevelJSON): void {
+	public async load(json: LevelJSON): Promise<void> {
 		assignWithDefaults(this as Level, pick(json, copy));
 		this.date = new Date(json.date);
 
@@ -107,13 +107,13 @@ export class Level extends EventEmitter<LevelEvents> {
 			logger.debug(`Loading ${data.type} ${data.id}`);
 			const Ctor = loadingOrder[priorities.indexOf(data.type)];
 			const entity = new Ctor(data.id, this);
-			entity.load(data);
+			await entity.load(data);
 		}
 	}
 
-	public static FromJSON(this: new () => Level, json: LevelJSON): Level {
+	public static async FromJSON(this: new () => Level, json: LevelJSON): Promise<Level> {
 		const level = new this();
-		level.fromJSON(json);
+		await level.load(json);
 		return level;
 	}
 }

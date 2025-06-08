@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import dedent from 'dedent';
 import { EventEmitter } from 'eventemitter3';
@@ -117,7 +118,7 @@ export class Entity<TComponents extends readonly Component[] = any>
 		);
 	}
 
-	public load(data: Partial<ApplyComponentsJSON<TComponents>>): void {
+	public async load(data: Partial<ApplyComponentsJSON<TComponents>>): Promise<void> {
 		assignWithDefaults(this, {
 			id: data.id,
 			type: data.type,
@@ -126,7 +127,7 @@ export class Entity<TComponents extends readonly Component[] = any>
 			rotation: data.rotation && Vector3.FromArray(data.rotation),
 			parent: data.parent ? this.level.getEntityByID(data.parent) : undefined,
 		} as any);
-		for (const component of this.components) component.load?.(data);
+		for (const component of this.components) await component.load?.(data);
 	}
 
 	public toString(): string {
@@ -134,6 +135,7 @@ export class Entity<TComponents extends readonly Component[] = any>
 		position: ${vectorString(this.position)}
 		rotation: ${vectorString(this.rotation)}
 		${Array.from(this.components)
+			// eslint-disable-next-line @typescript-eslint/no-base-to-string
 			.map(c => `${c.constructor.name} ${c.toString === Object.prototype.toString ? '' : c.toString()}`)
 			.join('\n')}
 		`;

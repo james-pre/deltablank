@@ -22,7 +22,7 @@ export function setVersion(value: string): void {
 export const http: HTTPServer = createServer((req, res) => {
 	res.setHeader('Access-Control-Allow-Origin', '*');
 	switch (req.url) {
-		case '/ping':
+		case '/ping': {
 			const data: PingInfo = {
 				current_clients: io.sockets.sockets.size,
 				max_clients: config.max_clients,
@@ -32,6 +32,7 @@ export const http: HTTPServer = createServer((req, res) => {
 			if (config.public_uptime) data.uptime = process.uptime();
 			res.end(JSON.stringify(data));
 			break;
+		}
 		case '/log':
 			res.writeHead(config.public_log ? 200 : 403).end(config.public_log ? logger.toString() : null);
 			break;

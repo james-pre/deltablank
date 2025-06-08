@@ -4,7 +4,7 @@
 import type { UUID } from 'utilium';
 import type { Account, AccountResult, FullAccount, UniqueAccountKey } from '../../accounts.js';
 import { accountAttributes, checkAccountAttribute } from '../../accounts.js';
-import { Access } from '../../generic.js';
+import type { Access } from '../../generic.js';
 import { request } from '../request.js';
 
 /**

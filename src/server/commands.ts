@@ -87,14 +87,14 @@ addCommand({
 	name: 'stop',
 	permissionLevel: 4,
 	exec() {
-		server.stop();
+		void server.stop();
 	},
 });
 addCommand({
 	name: 'restart',
 	permissionLevel: 4,
 	exec() {
-		server.restart();
+		void server.restart();
 	},
 });
 

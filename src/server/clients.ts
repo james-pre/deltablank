@@ -1,8 +1,7 @@
 import type { Socket } from 'socket.io';
-
 import type { UUID } from 'utilium';
-import { Entity, type EntityJSON } from '../core/entity.js';
 import { execCommandString } from '../core/commands.js';
+import { Entity } from '../core/entity.js';
 import { blacklist } from './config.js';
 import { level } from './server.js';
 import { io } from './transport.js';

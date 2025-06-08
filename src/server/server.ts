@@ -13,7 +13,7 @@ let isStopping = false;
 
 export let level: Level, levelData: LevelJSON | undefined;
 
-export function init() {
+export async function init() {
 	io.use((socket, next) => {
 		checkClientAuth(socket)
 			.then(next)
@@ -32,7 +32,7 @@ export function init() {
 	});
 
 	if (levelData) {
-		level.fromJSON(levelData);
+		await level.load(levelData);
 	} else {
 		logger.info('No level detected. Generating...');
 		level = new Level();
@@ -45,7 +45,7 @@ export function init() {
 	}
 
 	setInterval(() => {
-		level.tick();
+		void level.tick();
 	}, 1000 / config.tick_rate);
 
 	setInterval(() => {
@@ -90,26 +90,26 @@ export function onClose(handler: () => void): void {
 	_onCloseHandler = handler;
 }
 
-export function stop() {
+export async function stop() {
 	isStopping = true;
 	logger.info('Stopping...');
 	for (const client of clients.values()) {
 		client.kick('Server shutting down');
 	}
-	io.close();
+	await io.close();
 	http.close();
 	_onCloseHandler?.();
 	logger.info('Stopped');
 	process.exit();
 }
 
-export function restart() {
+export async function restart() {
 	isStopping = true;
 	logger.info('Restarting...');
 	for (const client of clients.values()) {
 		client.kick('Server restarting');
 	}
-	io.close();
+	await io.close();
 	http.close();
 	_onCloseHandler?.();
 	logger.info('Restarted');
@@ -125,7 +125,6 @@ export function restart() {
 	process.exit();
 }
 
-/* eslint-disable @typescript-eslint/only-throw-error */
 export async function checkClientAuth(socket: Socket): Promise<undefined> {
 	if (isStopping) {
 		throw 'Server is stopping or restarting';
@@ -168,4 +167,3 @@ export async function checkClientAuth(socket: Socket): Promise<undefined> {
 	io.emit('chat', `${client.name} joined`);
 	return;
 }
-/* eslint-enable @typescript-eslint/only-throw-error */

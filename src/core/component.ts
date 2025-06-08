@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 import { pick } from 'utilium';
 import type { Entity, EntityJSON } from './entity.js';
 import { logger } from './utils.js';

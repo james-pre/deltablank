@@ -232,7 +232,7 @@ export function isValidAccountAttribute<K extends keyof FullAccount>(key: K, val
 	try {
 		checkAccountAttribute(key, value);
 		return true;
-	} catch (e) {
+	} catch {
 		return false;
 	}
 }
