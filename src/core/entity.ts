@@ -2,7 +2,7 @@
 import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import dedent from 'dedent';
 import { EventEmitter } from 'eventemitter3';
-import type { ConstructorsFor, InstancesFor, UUID } from 'utilium';
+import type { InstancesFor, UUID } from 'utilium';
 import { assignWithDefaults } from 'utilium';
 import type { Component, ComponentMixin } from './component.js';
 import type { Level } from './level.js';
@@ -182,9 +182,9 @@ export type ApplyComponents<T extends readonly Component[], Result extends Entit
 /**
  * A constructor for an entity with some components.
  */
-export interface EntityConstructor<T extends Component[]> {
+export interface EntityConstructor<T extends Component[] = any> {
 	new (...args: ConstructorParameters<typeof Entity>): ApplyComponents<T>;
-	components: ConstructorsFor<T>;
+	components: (typeof Component)[];
 }
 
 /**
@@ -240,11 +240,11 @@ export function EntityWith<const T extends readonly (new (...args: any[]) => Com
 	return Constructor;
 }
 
-export interface EntityRegistry extends Record<string, EntityConstructor<any>> {}
+export interface EntityRegistry extends Record<string, EntityConstructor> {}
 
 export const entityRegistry: EntityRegistry = Object.create(null);
 
-export function registerEntity<Class extends EntityConstructor<any>>(target: Class) {
+export function registerEntity<Class extends EntityConstructor & { components: (typeof Component)[] }>(target: Class) {
 	logger.debug('Registered entity type: ' + target.name);
 	entityRegistry[target.name] = target;
 }
