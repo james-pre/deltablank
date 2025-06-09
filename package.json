@@ -1,5 +1,5 @@
 {
-	"name": "blank-engine",
+	"name": "deltablank",
 	"version": "0.0.1",
 	"description": "An engine designed for making 3D experiences.",
 	"main": "dist/index.js",
@@ -16,15 +16,15 @@
 		"eslint.shared.js"
 	],
 	"type": "module",
-	"homepage": "https://github.com/james-pre/blank",
+	"homepage": "https://github.com/james-pre/deltablank",
 	"author": "James Prevett <jp@jamespre.dev> (https://jamespre.dev)",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/james-pre/blank.git"
+		"url": "git+https://github.com/james-pre/deltablank.git"
 	},
 	"bugs": {
-		"url": "https://github.com/james-pre/blank/issues"
+		"url": "https://github.com/james-pre/deltablank/issues"
 	},
 	"engines": {
 		"node": ">= 22"
