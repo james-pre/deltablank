@@ -20,6 +20,7 @@ export interface EntityJSON {
 export class Entity<TComponents extends readonly Component[] = any>
 	extends EventEmitter<{
 		created: [];
+		tick: [];
 	}>
 	implements AsyncDisposable
 {
@@ -89,6 +90,7 @@ export class Entity<TComponents extends readonly Component[] = any>
 			this.rotation.y += Math.sign(this.rotation.y) * 2 * Math.PI;
 		}
 		await this.onTick?.();
+		this.emit('tick');
 	}
 
 	public onDispose?(): void | Promise<void>;
