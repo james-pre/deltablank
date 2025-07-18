@@ -2,6 +2,7 @@
 	"name": "deltablank",
 	"version": "0.0.2",
 	"description": "An engine designed for making 3D experiences.",
+	"license": "LGPL-3.0-or-later",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"keywords": [],
@@ -18,7 +19,6 @@
 	"type": "module",
 	"homepage": "https://github.com/james-pre/deltablank",
 	"author": "James Prevett <jp@jamespre.dev> (https://jamespre.dev)",
-	"license": "MIT",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/james-pre/deltablank.git"
